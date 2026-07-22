@@ -2,14 +2,15 @@
 
 import { useState } from "react";
 import { LayoutDashboard, ShoppingCart, Package, Wrench, RefreshCw } from "lucide-react";
-import { useData } from "./hooks/useData";
+import { useData }          from "./hooks/useData";
+import { useNotifications } from "./hooks/useNotifications";
+import NotificationBell     from "./components/ui/NotificationBell";
 
 import ViewDashboard from "./views/ViewDashboard";
 import ViewVendas    from "./views/ViewVendas";
 import ViewEstoque   from "./views/ViewEstoque";
 import ViewPecas     from "./views/ViewPecas";
 
-// ─── Configuração das views disponíveis ───────────────────────────────────────
 const VIEWS = [
   { id: "dashboard", label: "Dashboard",        icon: LayoutDashboard },
   { id: "vendas",    label: "Vendas",            icon: ShoppingCart },
@@ -17,7 +18,6 @@ const VIEWS = [
   { id: "pecas",     label: "Cadastro de Peças", icon: Wrench },
 ];
 
-// ─── Componente principal ─────────────────────────────────────────────────────
 export default function DashboardOrdenhadeiras() {
   const [view, setView] = useState("dashboard");
 
@@ -26,6 +26,11 @@ export default function DashboardOrdenhadeiras() {
     adicionarVenda, atualizarVenda, excluirVenda,
     adicionarPeca,  salvarPeca,     excluirPeca, ajustarEstoque,
   } = useData();
+
+  const {
+    notificacoes, naoLidas, conectado,
+    marcarLida, marcarTodasLidas, limpar,
+  } = useNotifications();
 
   const VIEW_MAP = {
     dashboard: <ViewDashboard pecas={pecas} vendas={vendas} />,
@@ -87,39 +92,41 @@ export default function DashboardOrdenhadeiras() {
           <h2 className="text-base font-semibold text-gray-900">
             {VIEWS.find((v) => v.id === view)?.label}
           </h2>
-          <div className="text-xs text-gray-400">
-            {new Date().toLocaleDateString("pt-BR", {
-              weekday: "long", day: "2-digit", month: "long", year: "numeric",
-            })}
+          <div className="flex items-center gap-3">
+            {/* Sino de notificações */}
+            <NotificationBell
+              notificacoes={notificacoes}
+              naoLidas={naoLidas}
+              conectado={conectado}
+              onMarcarLida={marcarLida}
+              onMarcarTodas={marcarTodasLidas}
+              onLimpar={limpar}
+            />
+            <div className="text-xs text-gray-400">
+              {new Date().toLocaleDateString("pt-BR", {
+                weekday: "long", day: "2-digit", month: "long", year: "numeric",
+              })}
+            </div>
           </div>
         </header>
 
         <main className="flex-1 overflow-y-auto p-6">
-
-          {/* Carregando */}
           {loading && (
             <div className="flex items-center justify-center h-full">
               <RefreshCw size={20} className="animate-spin text-emerald-500 mr-2" />
               <span className="text-sm text-gray-500">Carregando dados...</span>
             </div>
           )}
-
-          {/* Erro de conexão */}
           {error && !loading && (
             <div className="flex items-center justify-center h-full">
               <div className="text-center">
                 <p className="text-sm text-red-500 mb-2">Erro ao conectar com o servidor</p>
                 <p className="text-xs text-gray-400">{error}</p>
-                <p className="text-xs text-gray-400 mt-1">
-                  Verifique se o backend está rodando em localhost:3000
-                </p>
+                <p className="text-xs text-gray-400 mt-1">Verifique se o backend está rodando em localhost:3001</p>
               </div>
             </div>
           )}
-
-          {/* Conteúdo */}
           {!loading && !error && VIEW_MAP[view]}
-
         </main>
       </div>
     </div>
