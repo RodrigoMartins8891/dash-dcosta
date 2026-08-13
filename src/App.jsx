@@ -1,10 +1,12 @@
 "use client";
 
 import { useState } from "react";
-import { LayoutDashboard, ShoppingCart, Package, Wrench, RefreshCw } from "lucide-react";
+import { LayoutDashboard, ShoppingCart, Package, Wrench, RefreshCw, FileSpreadsheet } from "lucide-react";
 import { useData }          from "./hooks/useData";
 import { useNotifications } from "./hooks/useNotifications";
 import NotificationBell     from "./components/ui/NotificationBell";
+import { exportarExcel }    from "./utils/exportarExcel";
+import { Btn }              from "./components/ui";
 
 import ViewDashboard from "./views/ViewDashboard";
 import ViewVendas    from "./views/ViewVendas";
@@ -38,6 +40,28 @@ export default function DashboardOrdenhadeiras() {
     estoque:   <ViewEstoque   pecas={pecas} onAjuste={ajustarEstoque} />,
     pecas:     <ViewPecas     pecas={pecas} onAdd={adicionarPeca} onSave={salvarPeca} onDelete={excluirPeca} />,
   };
+
+  function handleExportarExcel() {
+    const pecasFormatadas = pecas.map((p) => ({
+      id:        p.id,
+      nome:      p.nome,
+      sku:       p.sku       ?? "",
+      categoria: p.categoria ?? "Outros",
+      preco:     p.preco,
+      estoque:   p.estoque,
+      minimo:    p.minimo    ?? 5,
+    }));
+
+    const vendasFormatadas = vendas.map((v) => ({
+      ...v,
+      itens: v.itens.map((i) => {
+        const peca = pecas.find((p) => p.id === i.pecaId);
+        return { ...i, nome: peca?.nome };
+      }),
+    }));
+
+    exportarExcel(vendasFormatadas, pecasFormatadas);
+  }
 
   return (
     <div className="flex h-screen bg-gray-50 font-sans overflow-hidden">
@@ -92,7 +116,14 @@ export default function DashboardOrdenhadeiras() {
           <h2 className="text-base font-semibold text-gray-900">
             {VIEWS.find((v) => v.id === view)?.label}
           </h2>
+
           <div className="flex items-center gap-3">
+            {/* Exportar Excel */}
+            <Btn onClick={handleExportarExcel} size="sm">
+              <FileSpreadsheet size={14} className="text-emerald-600" />
+              Exportar Excel
+            </Btn>
+
             {/* Sino de notificações */}
             <NotificationBell
               notificacoes={notificacoes}
@@ -102,6 +133,7 @@ export default function DashboardOrdenhadeiras() {
               onMarcarTodas={marcarTodasLidas}
               onLimpar={limpar}
             />
+
             <div className="text-xs text-gray-400">
               {new Date().toLocaleDateString("pt-BR", {
                 weekday: "long", day: "2-digit", month: "long", year: "numeric",
