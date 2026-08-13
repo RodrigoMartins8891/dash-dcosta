@@ -1,11 +1,20 @@
 "use client";
 
 import { useState, useMemo } from "react";
-import { Search, Download, Plus, Eye, FileUp, Trash2, FileText } from "lucide-react";
+import { Search, Download, Plus, Eye, FileUp, Trash2, FileText, Truck } from "lucide-react";
 import { Btn, IconBtn, Badge, Select } from "../components/ui";
 import { ModalNovaVenda }              from "../components/modals/ModalNovaVenda";
 import { ModalDetalhes, ModalNF }      from "../components/modals/ModalVendaExtras";
+import { ModalRastreio }               from "../components/modals/ModalRastreio";
 import { totalVenda, fmtBRL, fmtData, exportCSV } from "../utils";
+
+const STATUS_ENVIO_BADGE = {
+  "Aguardando": "gray",
+  "Separando":  "blue",
+  "Enviado":    "amber",
+  "Entregue":   "green",
+  "Devolvido":  "red",
+};
 
 export default function ViewVendas({ vendas, pecas, onAdd, onUpdate, onDelete }) {
   const [busca,        setBusca]        = useState("");
@@ -34,6 +43,15 @@ export default function ViewVendas({ vendas, pecas, onAdd, onUpdate, onDelete })
   async function salvarNF(id, nf) {
     try {
       await onUpdate(id, { nf });
+      setModal(null);
+    } catch (err) {
+      alert(err.message);
+    }
+  }
+
+  async function salvarRastreio(id, data) {
+    try {
+      await onUpdate(id, data);
       setModal(null);
     } catch (err) {
       alert(err.message);
@@ -85,10 +103,11 @@ export default function ViewVendas({ vendas, pecas, onAdd, onUpdate, onDelete })
                 <th className="text-left   px-4 py-3">Cliente</th>
                 <th className="text-left   px-4 py-3">Data</th>
                 <th className="text-left   px-4 py-3">Pagamento</th>
-                <th className="text-left   px-4 py-3">Frete</th>
                 <th className="text-center px-4 py-3">Itens</th>
                 <th className="text-right  px-4 py-3">Total</th>
                 <th className="text-center px-4 py-3">Status</th>
+                <th className="text-center px-4 py-3">Envio</th>
+                <th className="text-center px-4 py-3">Rastreio</th>
                 <th className="text-center px-4 py-3">NF</th>
                 <th className="text-center px-4 py-3">Ações</th>
               </tr>
@@ -101,11 +120,24 @@ export default function ViewVendas({ vendas, pecas, onAdd, onUpdate, onDelete })
                     <td className="px-4 py-3 font-medium text-gray-800">{v.cliente}</td>
                     <td className="px-4 py-3 text-gray-600 text-xs">{fmtData(v.data)}</td>
                     <td className="px-4 py-3 text-gray-600 text-xs">{v.pagamento}</td>
-                    <td className="px-4 py-3 text-gray-600 text-xs">{v.frete}</td>
                     <td className="px-4 py-3 text-center text-gray-600 text-xs">{v.itens.length}</td>
                     <td className="px-4 py-3 text-right font-semibold text-gray-800">{fmtBRL(totalVenda(v))}</td>
                     <td className="px-4 py-3 text-center">
                       <Badge variant={v.status === "Concluída" ? "green" : "amber"}>{v.status}</Badge>
+                    </td>
+                    <td className="px-4 py-3 text-center">
+                      <Badge variant={STATUS_ENVIO_BADGE[v.status_envio] ?? "gray"}>
+                        {v.status_envio || "Aguardando"}
+                      </Badge>
+                    </td>
+                    <td className="px-4 py-3 text-center">
+                      {v.codigo_rastreio ? (
+                        <span className="font-mono text-xs text-blue-600 bg-blue-50 px-2 py-0.5 rounded">
+                          {v.codigo_rastreio}
+                        </span>
+                      ) : (
+                        <span className="text-gray-300 text-xs">—</span>
+                      )}
                     </td>
                     <td className="px-4 py-3 text-center">
                       {v.nf ? (
@@ -119,6 +151,9 @@ export default function ViewVendas({ vendas, pecas, onAdd, onUpdate, onDelete })
                         <IconBtn title="Ver detalhes" onClick={() => setModal({ type: "detalhes", data: v })}>
                           <Eye size={13} />
                         </IconBtn>
+                        <IconBtn title="Rastreio" onClick={() => setModal({ type: "rastreio", data: v })}>
+                          <Truck size={13} />
+                        </IconBtn>
                         <IconBtn title="Nota fiscal" onClick={() => setModal({ type: "nf", data: v })}>
                           <FileUp size={13} />
                         </IconBtn>
@@ -131,7 +166,7 @@ export default function ViewVendas({ vendas, pecas, onAdd, onUpdate, onDelete })
                 ))
               ) : (
                 <tr>
-                  <td colSpan={10} className="text-center py-12 text-sm text-gray-400">
+                  <td colSpan={11} className="text-center py-12 text-sm text-gray-400">
                     Nenhuma venda encontrada
                   </td>
                 </tr>
@@ -152,6 +187,13 @@ export default function ViewVendas({ vendas, pecas, onAdd, onUpdate, onDelete })
         <ModalNF
           venda={modal.data}
           onSave={(nf) => salvarNF(modal.data.id, nf)}
+          onClose={() => setModal(null)}
+        />
+      )}
+      {modal?.type === "rastreio" && (
+        <ModalRastreio
+          venda={modal.data}
+          onSave={(data) => salvarRastreio(modal.data.id, data)}
           onClose={() => setModal(null)}
         />
       )}
